@@ -16,12 +16,6 @@ var iDados = 0;
 let dados = [];
 let json = {};
 
-const s3Config = {
-  key: "AKIAXVYR274PADBYHGXJ",
-  secret: "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",
-  bucket: "planaltecbucket",
-  region: "sa-east-1",
-};
 
 // Configure o cliente S3
 const s3 = new AWS.S3({
