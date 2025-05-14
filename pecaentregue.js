@@ -212,7 +212,7 @@ class Vinculacao {
         //Escrevendo a nota
         var AGFormatado = AGNovo.split("-").join("/");
         await page.keyboard.type(
-          `${dataFormatada} - Peça entregue, previsão de reparo ${AGFormatado}.`
+          `${dataFormatada} -  Peça entregue, reparo será agendado para até ${AGFormatado}.`
         );
         await page.waitForTimeout(5000);
 
@@ -232,6 +232,9 @@ class Vinculacao {
     } catch (error) {
       console.log(error);
       teste.reset();
+      if(browser){
+        browser.close();
+      }
       return;
     }
   }
@@ -243,6 +246,7 @@ class Vinculacao {
       IZ.id,
       IZ.OS,
       IZ.Sinistro,
+      IZ.id_emp,
       IZ.data,
       @varAG := (SELECT A.A_Data FROM agendamento A WHERE A.A_id_Zurich = IZ.id AND (A.status_id = IZ.status) ORDER BY A.A_id DESC limit 1) as varAG,
       IF(@varAG IS NULL, (SELECT A.A_Data FROM agendamento A WHERE A.A_id_Zurich = IZ.id ORDER BY A.A_id DESC limit 1), @varAG) as AG,
@@ -251,7 +255,7 @@ class Vinculacao {
       (SELECT D.desc_descricao FROM descricoes D where D.desc_id_zurich = IZ.id AND D.desc_descricao LIKE CONCAT('%', S.sel_nome, '%') order by D.desc_id desc limit 1) as 'descricao'
     FROM importados_zurich IZ
         left join selects S ON S.sel_id = IZ.status 
-    WHERE IZ.id_emp IN (101,113)
+    WHERE IZ.id_emp IN (101,113,166)
       AND IZ.gatilho = 0
       AND IZ.reincidencia != 4
       AND IZ.status = 137

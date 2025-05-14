@@ -11,13 +11,13 @@ var iDados = 0;
 let dados = [];
 let json = {};
 
-class Vinculacao {
-  acaoModel = require("../../../acaoModel/acaoModel");
+class Agendado {
+  acaoModel = require("../../../../acaoModel/acaoModel");
   constructor() {
     this.acaoModel = new this.acaoModel();
   }
 
-  async logando(i = 0, arr = []) {
+  async logando(i = 1, arr = []) {
     const browser = await puppeteer.launch({
       headless: true,
     });
@@ -41,10 +41,10 @@ class Vinculacao {
     await page.waitForSelector("#next");
     await page.click("#next");
 
-    // teste.tomaOK(page);
+    // rep.tomaOK(page);
     await page.waitForTimeout(5000);
-    posts = arr.length > 0 ? arr : await teste.carregaOS();
-    await teste.listagem(page, browser, posts, i);
+    posts = arr.length > 0 ? arr : await rep.carregaOS();
+    await rep.listagem(page, browser, posts, i);
     return;
   }
   async listagem(page, browser, arr = [], i = 0) {
@@ -59,7 +59,10 @@ class Vinculacao {
       console.log(i);
       console.log(AG);
       console.log(OS);
-      if(AG){
+      if(AG == null){
+        rep.listagem(page, browser, arr, ++i);
+        return;
+      }
       var AGNovo = AG.split("/").join("-");
       console.log(AGNovo);
       const AGDate = new Date(AGNovo.split("-").reverse().join("-"));
@@ -88,7 +91,8 @@ class Vinculacao {
       var horaAtual = new Date();
       var horas = horaAtual.getHours() + 1; // Adicionando uma hora
       var minutos = horaAtual.getMinutes();
-      
+      const hoje = new Date();
+      const dataFormatada = format(hoje, "dd/MM/yyyy");
 
       // Formatação dos minutos para adicionar um zero à esquerda, se necessário
       if (minutos < 10) {
@@ -99,25 +103,28 @@ class Vinculacao {
       console.log(horarioFormatado);
       console.log(date);
       console.log(novaData);
-      }
-      const hoje = new Date();
-      const dataFormatada = format(hoje, "dd/MM/yyyy");
+
+      //Clica na logo 
+      await page.waitForSelector("body > app-root > app-portal > app-header > app-menu > div > div > div.d-none.d-md-flex.container.align-items-center.nav-container > a > span");
+      await page.click("body > app-root > app-portal > app-header > app-menu > div > div > div.d-none.d-md-flex.container.align-items-center.nav-container > a > span");
+      await page.waitForTimeout(4000);
+      
       //Ordens de Serviço
       await page.waitForSelector(
         "body > app-root > app-portal > app-header > app-menu > div.row.header-navigation > div > div.d-none.d-md-flex.container.align-items-center.nav-container > div.d-flex.flex-grow-1.justify-content-evenly > div:nth-child(3)"
       );
       await page.click(
-        "body > app-root > app-portal > app-header > app-menu > div.row.header-navigation > div > div.d-none.d-md-flex.container.align-items-center.nav-container > div.d-flex.flex-grow-1.justify-content-evenly > div:nth-child(3)"
-      );
+        "body > app-root > app-portal > app-header > app-menu > div.row.header-navigation > div > div.d-none.d-md-flex.container.align-items-center.nav-container > div.d-flex.flex-grow-1.justify-content-evenly > div:nth-child(3)");
       await page.waitForTimeout(2000);
 
       //Pesquisa o Sinistro
       await page.waitForSelector(
         "#main-content > app-service-order-list > div > div.row.d-flex.no-print > div:nth-child(1) > input"
       );
+      await page.click("#main-content > app-service-order-list > div > div.row.d-flex.no-print > div:nth-child(1) > input", { clickCount: 3 })
       await page.type(
         "#main-content > app-service-order-list > div > div.row.d-flex.no-print > div:nth-child(1) > input",
-        OS
+        arr[i].OS
       );
 
       //Buscar
@@ -129,19 +136,16 @@ class Vinculacao {
 
       try {
         
-        //Entra no sinistro
-        await page.click(
-          "#main-content > app-service-order-list > div > div:nth-child(8) > div > lib-elux-datatable > div > div.table-row.clickable > div:nth-child(1) > a"
-        );
-        await page.waitForTimeout(6000);
-        } catch (error) {
-           console.log("Sinistro não encontrado.");
-           teste.listagem(page, browser, arr, ++i);
-           return;
-        }
-
+      //Entra no sinistro
+      await page.click(
+        "#main-content > app-service-order-list > div > div:nth-child(8) > div > lib-elux-datatable > div > div.table-row.clickable > div:nth-child(1) > a"
+      );
       await page.waitForTimeout(6000);
-
+      } catch (error) {
+         console.log("Sinistro não encontrado.");
+         rep.listagem(page, browser, arr, ++i);
+         return;
+      }
       // Obtém o conteúdo do seletor usando o Puppeteer
       const detalhamentoValue = await page.$eval(
         "#main-content > ng-component > div > div:nth-child(4) > div:nth-child(5) > div:nth-child(2) > div:nth-child(2) > span",
@@ -150,20 +154,15 @@ class Vinculacao {
 
       console.log(detalhamentoValue); // Exibe o conteúdo no console
 
-      if (
-        detalhamentoValue.includes(
-          "Feito contato, aguardando retorno com as documentações"
-        )
-      ) {
+      if (detalhamentoValue.includes("Atendimento agendado para")) {
         console.log("detalhamentoValue contém o conteúdo de nota");
         //Salvar
         await page.waitForTimeout(5000);
-        await teste.updateGatilhoSinistros(arr[i].id);
+        await rep.updateGatilhoSinistros(arr[i].id);
         await page.waitForTimeout(5000);
-        teste.listagem(page, browser, arr, ++i);
+        rep.listagem(page, browser, arr, ++i);
         return;
       } else {
-
         //Editar
         await page.waitForTimeout(2000);
         await page.click(
@@ -171,7 +170,7 @@ class Vinculacao {
         );
 
         await page.waitForTimeout(4000);
-        // Clique para abrir o dropdown de status
+        // Clique para abrir o dropdown (substitua o seletor pelo seletor correto para abrir o dropdown)
         await page.click(
           "#main-content > app-service-order-edit > div > div:nth-child(3) > form:nth-child(2) > div:nth-child(4) > div > lib-elux-dropdown > div > input"
         );
@@ -180,7 +179,7 @@ class Vinculacao {
         await page.waitForSelector("ul.dropdown-list");
 
         // Selecione a opção "Aguardando atendimento"
-        const option = await page.$("ul.dropdown-list li:nth-child(39)");
+        const option = await page.$("ul.dropdown-list li:nth-child(9)");
         await option.click();
 
         // Aguarde a ação ser completada ou realizar outras ações que desejar
@@ -206,11 +205,12 @@ class Vinculacao {
         await page.waitForTimeout(2000);
 
         //Escrevendo a nota
+        var AGFormatado = AGNovo.split("-").join("/");
         await page.keyboard.type(
-          `${dataFormatada} - Feito contato, aguardando retorno com as documentações`
+          `${dataFormatada} - Atendimento agendado para ${AGFormatado}.`
         );
         await page.waitForTimeout(2000);
-
+        await rep.updateGatilhoSinistros(arr[i].id);
         //Salvar
         await page.click(
           "#main-content > app-service-order-edit > div > div.row.mt-5 > div.col-3.ms-auto > lib-elux-button > button"
@@ -219,19 +219,19 @@ class Vinculacao {
 
         //Agendamento / Reagendamento
         // await page.click("#main-content > ng-component > div > div:nth-child(4) > div.row.mt-5.mb-2 > div:nth-child(4) > lib-elux-button > button");
-        await teste.updateGatilhoSinistros(arr[i].id);
-        await page.waitForTimeout(3000)
-        await teste.listagem(page, browser, arr, ++i);
+
+        rep.listagem(page, browser, arr, ++i);
         return;
       }
     } catch (error) {
       console.log(error);
+      await rep.reset();
       if(browser){
         browser.close();
       }
-      teste.reset();
       return;
     }
+    return;
   }
   async carregaOS() {
     const response = await this.acaoModel.manualQuery({
@@ -249,10 +249,10 @@ class Vinculacao {
       (SELECT D.desc_descricao FROM descricoes D where D.desc_id_zurich = IZ.id AND D.desc_descricao LIKE CONCAT('%', S.sel_nome, '%') order by D.desc_id desc limit 1) as 'descricao'
     FROM importados_zurich IZ
         left join selects S ON S.sel_id = IZ.status 
-    WHERE IZ.id_emp IN (101,113, 166)
+    WHERE IZ.id_emp IN (166)
       AND IZ.gatilho = 0
       AND IZ.reincidencia != 4
-      AND IZ.status = 95
+      AND IZ.status = 53
       GROUP BY IZ.id`,
       tipoQuery: { type: Sequelize.SELECT },
     });
@@ -336,7 +336,7 @@ class Vinculacao {
   }
 
   reset() {
-    setTimeout(teste.logando, 600000);
+    setTimeout(rep.logando, 600000);
     console.log("reset");
   }
 
@@ -357,5 +357,5 @@ class Vinculacao {
   }
 }
 
-const teste = new Vinculacao();
-teste.logando();
+const rep = new Agendado();
+rep.logando();

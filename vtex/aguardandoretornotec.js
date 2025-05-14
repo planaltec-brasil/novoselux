@@ -12,7 +12,7 @@ let dados = [];
 let json = {};
 
 class Vinculacao {
-  acaoModel = require("../../../acaoModel/acaoModel");
+  acaoModel = require("../../../../acaoModel/acaoModel");
   constructor() {
     this.acaoModel = new this.acaoModel();
   }
@@ -30,12 +30,12 @@ class Vinculacao {
     //Login
     await page.waitForSelector("#email");
     await page.click("#email");
-    await page.type("#email", "elericloud@gmail.com");
+    await page.type("#email", "lorenaalvesferreira.planaltec@gmail.com");
     await page.waitForTimeout(2000);
     //Senha
     await page.waitForSelector("#password");
     await page.click("#password");
-    await page.type("#password", "Elux@7197");
+    await page.type("#password", "Elux@2024");
     await page.waitForTimeout(2000);
     //Entrar
     await page.waitForSelector("#next");
@@ -59,7 +59,11 @@ class Vinculacao {
       console.log(i);
       console.log(AG);
       console.log(OS);
-      if(AG){
+      if(AG == null){
+        //Atendimento sem data de AG, pulando para o próximo
+        teste.listagem(page, browser, arr, ++i);
+        return;
+      }
       var AGNovo = AG.split("/").join("-");
       console.log(AGNovo);
       const AGDate = new Date(AGNovo.split("-").reverse().join("-"));
@@ -69,7 +73,7 @@ class Vinculacao {
       today.setHours(0, 0, 0, 0);
       AGDate.setHours(0, 0, 0, 0);
 
-      if (AGDate < today) {
+      if (AGDate <= today) {
         // Add 3 days if date is in the past
         let newDate = addDays(today, 3);
 
@@ -88,7 +92,8 @@ class Vinculacao {
       var horaAtual = new Date();
       var horas = horaAtual.getHours() + 1; // Adicionando uma hora
       var minutos = horaAtual.getMinutes();
-      
+      const hoje = new Date();
+      const dataFormatada = format(hoje, "dd/MM/yyyy");
 
       // Formatação dos minutos para adicionar um zero à esquerda, se necessário
       if (minutos < 10) {
@@ -99,9 +104,7 @@ class Vinculacao {
       console.log(horarioFormatado);
       console.log(date);
       console.log(novaData);
-      }
-      const hoje = new Date();
-      const dataFormatada = format(hoje, "dd/MM/yyyy");
+
       //Ordens de Serviço
       await page.waitForSelector(
         "body > app-root > app-portal > app-header > app-menu > div.row.header-navigation > div > div.d-none.d-md-flex.container.align-items-center.nav-container > div.d-flex.flex-grow-1.justify-content-evenly > div:nth-child(3)"
@@ -152,7 +155,7 @@ class Vinculacao {
 
       if (
         detalhamentoValue.includes(
-          "Feito contato, aguardando retorno com as documentações"
+          "Documentações recebidas, estamos agendando a visita com prestador, previsão"
         )
       ) {
         console.log("detalhamentoValue contém o conteúdo de nota");
@@ -180,8 +183,9 @@ class Vinculacao {
         await page.waitForSelector("ul.dropdown-list");
 
         // Selecione a opção "Aguardando atendimento"
-        const option = await page.$("ul.dropdown-list li:nth-child(39)");
+        const option = await page.$("ul.dropdown-list li:nth-child(3)");
         await option.click();
+        
 
         // Aguarde a ação ser completada ou realizar outras ações que desejar
         await page.waitForTimeout(2000); // Tempo para observar
@@ -206,8 +210,9 @@ class Vinculacao {
         await page.waitForTimeout(2000);
 
         //Escrevendo a nota
+        var AGFormatado = AGNovo.split("-").join("/");
         await page.keyboard.type(
-          `${dataFormatada} - Feito contato, aguardando retorno com as documentações`
+          `${dataFormatada} - Documentações recebidas, estamos agendando a visita com prestador, previsão ${AGFormatado}.`
         );
         await page.waitForTimeout(2000);
 
@@ -226,10 +231,10 @@ class Vinculacao {
       }
     } catch (error) {
       console.log(error);
+      teste.reset();
       if(browser){
         browser.close();
       }
-      teste.reset();
       return;
     }
   }
@@ -249,10 +254,10 @@ class Vinculacao {
       (SELECT D.desc_descricao FROM descricoes D where D.desc_id_zurich = IZ.id AND D.desc_descricao LIKE CONCAT('%', S.sel_nome, '%') order by D.desc_id desc limit 1) as 'descricao'
     FROM importados_zurich IZ
         left join selects S ON S.sel_id = IZ.status 
-    WHERE IZ.id_emp IN (101,113, 166)
+    WHERE IZ.id_emp IN (144)
       AND IZ.gatilho = 0
       AND IZ.reincidencia != 4
-      AND IZ.status = 95
+      AND IZ.status = 97
       GROUP BY IZ.id`,
       tipoQuery: { type: Sequelize.SELECT },
     });

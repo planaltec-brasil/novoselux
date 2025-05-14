@@ -23,6 +23,7 @@ class Vinculacao {
     });
 
     console.log("login");
+    return;
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 720 });
     await page.goto("https://parceiros.electrolux.com.br/");
@@ -189,6 +190,9 @@ class Vinculacao {
     } catch (error) {
       console.log(error);
       teste.reset();
+      if(browser){
+        browser.close();
+      }
       return;
     }
   }

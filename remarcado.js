@@ -232,6 +232,9 @@ class Vinculacao {
     } catch (error) {
       console.log(error);
       teste.reset();
+      if(browser){
+        browser.close();
+      }
       return;
     }
   }

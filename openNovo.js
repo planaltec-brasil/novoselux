@@ -100,13 +100,25 @@ class Vinculacao {
       Sinistro = Sinistro[0]
       console.log(Sinistro)
       const verificacao = await teste.carregaOS(Sinistro);
+      // console.log(verificacao);
+      // console.log(verificacao.length)
+      // if(verificacao.length == 0){
+      //   console.log("Sinistro não existe.");
+      //   await page.waitForTimeout(4000);
+      //   teste.listagem(page, browser, ++i);
+      //   return;
+      // }
+
+     
+      
       console.log(verificacao[0]?.status); // Optional chaining para evitar erros
       if (verificacao[0]?.status == 50) {
         console.log("Esta em cancelado, alterando para o status 5")
         let id = verificacao[0]?.id
         const dataFormatada = moment().format("DD/MM/YYYY"); // Formata a data no formato desejado
         const horaAtual = moment().format("HH:mm"); // Formatação da hora
-        await teste.updateStatusSinistros(id, dataFormatada, horaAtual)
+        await teste.updateStatusSinistros(id, dataFormatada, horaAtual);
+        await teste.updateAtivoInativo(id);
         await page.waitForTimeout(1000);
       }
 
@@ -142,56 +154,59 @@ class Vinculacao {
     } catch (error) {
       console.log(error);
       teste.reset();
+      if(browser){
+        browser.close();
+      }
       return;
     }
   }
-  async carregaOS() {
-    const response = await this.acaoModel.manualQuery({
-      bd: "servico_bd",
-      tabela: "importados_zurich",
-      query: `SELECT 
-    IZ.id,
-    IZ.OS,
-    IZ.Sinistro,
-    IZ.data,
-    @varAG := (SELECT A.A_Data FROM agendamento A WHERE A.A_id_Zurich = IZ.id AND (A.status_id = IZ.status) ORDER BY A.A_id DESC limit 1) as varAG,
-    IF(@varAG IS NULL, (SELECT A.A_Data FROM agendamento A WHERE A.A_id_Zurich = IZ.id ORDER BY A.A_id DESC limit 1), @varAG) as AG,
-    IZ.status,
-    S.sel_nome,
-    (SELECT D.desc_descricao FROM descricoes D where D.desc_id_zurich = IZ.id AND D.desc_descricao LIKE CONCAT('%', S.sel_nome, '%') order by D.desc_id desc limit 1) as 'descricao',
-    IZ.cod_subconjunto,
-    IZ.cod_defeito,
-    IZ.orientacao_consumidor,
-    IZ.pnc_ml_electrolux,
-    IZ.modelo_comercial,
-    IZ.numero_nf,
-    IZ.numero_serie,
-    IZ.tensao,
-    IZ.revendedor,
-    IZ.modelo_usual,
-    IZ.data_nf,
-    IZ.taxa_flet  -- Adicionando o campo taxa_flet
-FROM importados_zurich IZ
-    LEFT JOIN selects S ON S.sel_id = IZ.status 
-WHERE IZ.id_emp IN (101, 113, 144)
-  AND IZ.reincidencia != 4
-  AND taxa_flet = 0
-  AND IZ.status IN (97, 18, 72, 71, 78, 79)
-  AND NOT (
-      (IZ.modelo_comercial IS NULL OR TRIM(IZ.modelo_comercial) = '') AND
-      (IZ.pnc_ml_electrolux IS NULL OR TRIM(IZ.pnc_ml_electrolux) = '') AND
-      (IZ.numero_serie IS NULL OR TRIM(IZ.numero_serie) = '') AND
-      (IZ.tensao IS NULL OR TRIM(IZ.tensao) = '') AND
-      (IZ.revendedor IS NULL OR TRIM(IZ.revendedor) = '') AND
-      (IZ.modelo_usual IS NULL OR TRIM(IZ.modelo_usual) = '')
-  )
-GROUP BY IZ.id;
-`,
-      tipoQuery: { type: Sequelize.SELECT },
-    });
+//   async carregaOS() {
+//     const response = await this.acaoModel.manualQuery({
+//       bd: "servico_bd",
+//       tabela: "importados_zurich",
+//       query: `SELECT 
+//     IZ.id,
+//     IZ.OS,
+//     IZ.Sinistro,
+//     IZ.data,
+//     @varAG := (SELECT A.A_Data FROM agendamento A WHERE A.A_id_Zurich = IZ.id AND (A.status_id = IZ.status) ORDER BY A.A_id DESC limit 1) as varAG,
+//     IF(@varAG IS NULL, (SELECT A.A_Data FROM agendamento A WHERE A.A_id_Zurich = IZ.id ORDER BY A.A_id DESC limit 1), @varAG) as AG,
+//     IZ.status,
+//     S.sel_nome,
+//     (SELECT D.desc_descricao FROM descricoes D where D.desc_id_zurich = IZ.id AND D.desc_descricao LIKE CONCAT('%', S.sel_nome, '%') order by D.desc_id desc limit 1) as 'descricao',
+//     IZ.cod_subconjunto,
+//     IZ.cod_defeito,
+//     IZ.orientacao_consumidor,
+//     IZ.pnc_ml_electrolux,
+//     IZ.modelo_comercial,
+//     IZ.numero_nf,
+//     IZ.numero_serie,
+//     IZ.tensao,
+//     IZ.revendedor,
+//     IZ.modelo_usual,
+//     IZ.data_nf,
+//     IZ.taxa_flet  -- Adicionando o campo taxa_flet
+// FROM importados_zurich IZ
+//     LEFT JOIN selects S ON S.sel_id = IZ.status 
+// WHERE IZ.id_emp IN (101, 113, 144)
+//   AND IZ.reincidencia != 4
+//   AND taxa_flet = 0
+//   AND IZ.status IN (97, 18, 72, 71, 78, 79)
+//   AND NOT (
+//       (IZ.modelo_comercial IS NULL OR TRIM(IZ.modelo_comercial) = '') AND
+//       (IZ.pnc_ml_electrolux IS NULL OR TRIM(IZ.pnc_ml_electrolux) = '') AND
+//       (IZ.numero_serie IS NULL OR TRIM(IZ.numero_serie) = '') AND
+//       (IZ.tensao IS NULL OR TRIM(IZ.tensao) = '') AND
+//       (IZ.revendedor IS NULL OR TRIM(IZ.revendedor) = '') AND
+//       (IZ.modelo_usual IS NULL OR TRIM(IZ.modelo_usual) = '')
+//   )
+// GROUP BY IZ.id;
+// `,
+//       tipoQuery: { type: Sequelize.SELECT },
+//     });
 
-    return response[0];
-  }
+//     return response[0];
+//   }
 
   // async carregaOS() {
   //   var response = await axios
@@ -287,6 +302,29 @@ GROUP BY IZ.id;
     }
     return newArray;
   }
+
+   async updateAtivoInativo(id) {
+      axios
+        .post(
+          "https://gsplanaltec.com/consultaBot/",
+          {
+            sqlQuery: `UPDATE importados_zurich SET AtivoInativo = 1 WHERE id IN (${id})`,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json; charset=UTF-8",
+            },
+          }
+        )
+        .then(function (response) {
+          var retorno = response.data;
+          console.log(retorno);
+        })
+        .catch(function (error) {
+          console.error(error);
+        });
+    }
+    
   async updateGatilhoSinistros(id) {
     axios
       .post(

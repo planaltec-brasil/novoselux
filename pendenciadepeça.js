@@ -264,6 +264,9 @@ class Vinculacao {
     } catch (error) {
       console.log(error);
       teste.reset();
+      if(browser){
+        browser.close();
+      }
       return;
     }
   }
@@ -283,10 +286,10 @@ class Vinculacao {
       (SELECT D.desc_descricao FROM descricoes D where D.desc_id_zurich = IZ.id AND D.desc_descricao LIKE CONCAT('%', S.sel_nome, '%') order by D.desc_id desc limit 1) as 'descricao'
     FROM importados_zurich IZ
         left join selects S ON S.sel_id = IZ.status 
-    WHERE IZ.id_emp IN (101,113)
+    WHERE IZ.id_emp IN (101,113,166)
       AND IZ.gatilho = 0
       AND IZ.reincidencia != 4
-      AND IZ.status = 16
+      AND IZ.status IN (16, 203)
       GROUP BY IZ.id`,
       tipoQuery: { type: Sequelize.SELECT },
     });

@@ -6,6 +6,8 @@ var posts = [];
 const { format, addDays } = require("date-fns");
 const moment = require("moment");
 const clipboardy = require("node-clipboardy");
+let horario = moment().format("HH:mm"); // Formato de 24h~
+
 
 var iDados = 0;
 let dados = [];
@@ -19,7 +21,7 @@ class Vinculacao {
 
   async logando(i = 0, arr = []) {
     const browser = await puppeteer.launch({
-      headless: true,
+      headless: false,
     });
 
     console.log("login");
@@ -47,16 +49,14 @@ class Vinculacao {
     await teste.listagem(page, browser, posts, i);
     return;
   }
-  async listagem(page, browser, arr = [], i = 0) {
+  async listagem(page, browser, arr = [], i) {
     try {
-      console.log(arr);
       await page.waitForTimeout(5000);
       let OS = arr[i].OS;
       let AG = arr[i].AG;
       let idos = arr[i].id;
       console.log("IDOS", idos);
-      console.log(arr.length);
-      console.log(i);
+      console.log("Esta: ",i," De: ",arr.length);
       console.log(AG);
       console.log(OS);
       if(AG == null){
@@ -145,6 +145,16 @@ class Vinculacao {
 
       await page.waitForTimeout(6000);
 
+      let datass = await page.$$eval("#main-content > ng-component > div > div:nth-child(4) > div:nth-child(3) > div.col-12.col-lg-6.mt-4.mt-lg-0 > div:nth-child(34) > span",(elements) => elements.map((el) => el.innerText));
+      console.log(datass[0])
+      if (datass[0] == "-"){
+        console.log("Sem data")
+        datass = 0
+      }else {
+        console.log("Com data")
+        datass = 1
+      }
+
       // Obtém o conteúdo do seletor usando o Puppeteer
       const detalhamentoValue = await page.$eval(
         "#main-content > ng-component > div > div:nth-child(4) > div:nth-child(5) > div:nth-child(2) > div:nth-child(2) > span",
@@ -155,7 +165,7 @@ class Vinculacao {
 
       if (
         detalhamentoValue.includes(
-          "Realizado análise técnica, assim que recebermos a análise iremos lançar, previsão "
+          "Prezados, vistoria realizada. Estamos gerando laudo para o envio"
         )
       ) {
         console.log("detalhamentoValue contém o conteúdo de nota");
@@ -182,16 +192,32 @@ class Vinculacao {
         // Aguarde o dropdown carregar
         await page.waitForSelector("ul.dropdown-list");
 
-        // Selecione a opção "Aguardando atendimento"
-        const option = await page.$("ul.dropdown-list li:nth-child(9)");
+        // Selecione a opção "Em atendimento"
+        const option = await page.$("ul.dropdown-list li:nth-child(23)");
         await option.click();
         
 
         // Aguarde a ação ser completada ou realizar outras ações que desejar
         await page.waitForTimeout(2000); // Tempo para observar
 
+        if (datass == 0){
+            //preenche as datas 
+            await page.waitForTimeout(2000)
+            console.log("A")
+            await page.waitForSelector("#main-content > app-service-order-edit > div > div:nth-child(3) > form:nth-child(23) > div:nth-child(2) > div:nth-child(1) > lib-elux-datepicker > div > input")
+            await page.click("#main-content > app-service-order-edit > div > div:nth-child(3) > form:nth-child(23) > div:nth-child(2) > div:nth-child(1) > lib-elux-datepicker > div > input")
+            await page.type("#main-content > app-service-order-edit > div > div:nth-child(3) > form:nth-child(23) > div:nth-child(2) > div:nth-child(1) > lib-elux-datepicker > div > input", AG)
+            //COLCA HORA
+            await page.waitForSelector("#main-content > app-service-order-edit > div > div:nth-child(3) > form.ng-valid.ng-touched.ng-dirty > div:nth-child(2) > div:nth-child(2) > input")
+            await page.click("#main-content > app-service-order-edit > div > div:nth-child(3) > form.ng-valid.ng-touched.ng-dirty > div:nth-child(2) > div:nth-child(2) > input")
+            await page.type("#main-content > app-service-order-edit > div > div:nth-child(3) > form.ng-valid.ng-touched.ng-dirty > div:nth-child(2) > div:nth-child(2) > input", horario)
+        }
+
         //Detalhamento do serviço Realizado
         await page.waitForTimeout(2000);
+        await page.waitForSelector(
+          "#main-content > app-service-order-edit > div > div:nth-child(3) > form:nth-child(26) > div:nth-child(5) > div > textarea"
+        );
         await page.click(
           "#main-content > app-service-order-edit > div > div:nth-child(3) > form:nth-child(26) > div:nth-child(5) > div > textarea"
         );
@@ -212,7 +238,7 @@ class Vinculacao {
         //Escrevendo a nota
         var AGFormatado = AGNovo.split("-").join("/");
         await page.keyboard.type(
-          `${dataFormatada} - Realizado análise técnica, assim que recebermos a análise iremos lançar, previsão ${AGFormatado}.`
+          `${dataFormatada} - Prezados, vistoria realizada. Estamos gerando laudo para o envio.`
         );
         await page.waitForTimeout(5000);
 
@@ -230,9 +256,17 @@ class Vinculacao {
         return;
       }
     } catch (error) {
+      if(error == "TypeError: Cannot read properties of undefined (reading 'OS')"){
+        console.log("Acabou tudo")
+        if(browser){
+          browser.close();
+        }
+        await teste.reset();
+        return;
+      }
       console.log(error);
-      teste.reset();
-      return;
+      await browser.close()
+      await teste.logando(++i)
     }
   }
   async carregaOS() {
@@ -251,7 +285,7 @@ class Vinculacao {
       (SELECT D.desc_descricao FROM descricoes D where D.desc_id_zurich = IZ.id AND D.desc_descricao LIKE CONCAT('%', S.sel_nome, '%') order by D.desc_id desc limit 1) as 'descricao'
     FROM importados_zurich IZ
         left join selects S ON S.sel_id = IZ.status 
-    WHERE IZ.id_emp IN (101,113)
+    WHERE IZ.id_emp IN (101,113,166)
       AND IZ.gatilho = 0
       AND IZ.reincidencia != 4
       AND IZ.status = 69
